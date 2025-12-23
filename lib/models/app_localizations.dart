@@ -295,6 +295,8 @@ class AppLocalizations {
     const Locale('en', 'US'),
     const Locale('ja', 'JP'),
   ];
+
+  get tasks => null;
 }
 
 class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

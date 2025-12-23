@@ -1,4 +1,6 @@
 import 'package:blueprint/pages/KanbanPage.dart';
+import 'package:blueprint/pages/dashboard_page.dart';
+import 'package:blueprint/pages/files_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:blueprint/pages/settings_page.dart';
@@ -6,6 +8,12 @@ import 'package:blueprint/models/theme_data.dart';
 import 'package:blueprint/models/locale_manager.dart';
 import 'package:blueprint/models/app_localizations.dart';
 import 'package:blueprint/preferences/settings_manager.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:blueprint/pages/settings_page.dart';
+import 'package:blueprint/preferences/settings_manager.dart';
+import 'package:blueprint/providers/app_state_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -145,83 +153,6 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-// Прокси-провайдер для ChangeNotifier
-class ChangeNotifierProvider<T extends ChangeNotifier> extends StatefulWidget {
-  final T value;
-  final Widget child;
-  
-  const ChangeNotifierProvider({
-    super.key,
-    required this.value,
-    required this.child,
-  });
-  
-  static T of<T extends ChangeNotifier>(BuildContext context) {
-    final provider = context.dependOnInheritedWidgetOfExactType<_InheritedProvider<T>>();
-    if (provider == null) {
-      throw FlutterError('ChangeNotifierProvider.of() called with context that does not contain a $T');
-    }
-    return provider.notifier;
-  }
-  
-  @override
-  State<ChangeNotifierProvider<T>> createState() => _ChangeNotifierProviderState<T>();
-}
-
-class _ChangeNotifierProviderState<T extends ChangeNotifier> extends State<ChangeNotifierProvider<T>> {
-  @override
-  void initState() {
-    super.initState();
-    widget.value.addListener(_valueChanged);
-  }
-  
-  @override
-  void didUpdateWidget(covariant ChangeNotifierProvider<T> oldWidget) {
-    if (oldWidget.value != widget.value) {
-      oldWidget.value.removeListener(_valueChanged);
-      widget.value.addListener(_valueChanged);
-    }
-    super.didUpdateWidget(oldWidget);
-  }
-  
-  @override
-  void dispose() {
-    widget.value.removeListener(_valueChanged);
-    super.dispose();
-  }
-  
-  void _valueChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return _InheritedProvider<T>(
-      notifier: widget.value,
-      child: widget.child,
-    );
-  }
-}
-
-class _InheritedProvider<T extends ChangeNotifier> extends InheritedWidget {
-  final T notifier;
-  
-  const _InheritedProvider({
-    required this.notifier,
-    required super.child,
-  });
-  
-  @override
-  bool updateShouldNotify(_InheritedProvider<T> oldWidget) {
-    return notifier != oldWidget.notifier;
-  }
-}
-
-// Остальной код MainLayout остается без изменений...
-// (копируем MainLayout и все связанные классы из предыдущего ответа)
-
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
 
@@ -230,134 +161,144 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentPageIndex = 3; // Начинаем со страницы настроек для демонстрации
+  int _currentPageIndex = 1; // Начинаем с Канбан-доски
   
-  // Страницы приложения
+  // Обновляем список страниц - добавляем FilesPage
   final List<Widget> _pages = [
-    _buildPlaceholderPage('Главная', Icons.home, Colors.blue),
+    const DashboardPage(),
     const KanbanPage(),
     _buildPlaceholderPage('Мессенджер', Icons.message, Colors.green),
-    const SettingsPage(), // Заменили заглушку на реальную страницу настроек
+    const FilesPage(),
+    const SettingsPage(),
   ];
 
   static Widget _buildPlaceholderPage(String title, IconData icon, Color color) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.3),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color),
+    return Builder(
+      builder: (context) {
+        // Получаем текущую тему
+        final appState = AppStateProvider.getState(context);
+        final currentTheme = appState?.theme ?? AppThemeType.dark;
+        final palette = AppThemeManager.getPalette(currentTheme);
+        
+        return Scaffold(
+          backgroundColor: palette.backgroundColor,
+          appBar: AppBar(
+            backgroundColor: palette.panelBackground,
+            elevation: 2,
+            shadowColor: Colors.black.withOpacity(0.3),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+                const SizedBox(width: 15),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: palette.primaryText,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 15),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1.0),
+              child: Container(
+                color: palette.border.withOpacity(0.5),
+                height: 1.0,
               ),
             ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: Colors.grey[800]!.withOpacity(0.5),
-            height: 1.0,
           ),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey[800]!, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    icon,
-                    size: 64,
-                    color: color,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Эта страница находится в разработке',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: color.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      'Скоро здесь появится контент',
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: palette.panelBackground,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: palette.border, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 64,
+                        color: color,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: palette.primaryText,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Эта страница находится в разработке',
+                        style: TextStyle(
+                          color: palette.secondaryText,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: color.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          'Скоро здесь появится контент',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                Text(
+                  'Вернитесь к Канбан-доске для работы с задачами',
+                  style: TextStyle(
+                    color: palette.secondaryText,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 40),
-            Text(
-              'Вернитесь к Канбан-доске для работы с задачами',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  // Список элементов меню
-  final List<NavigationItem> _navigationItems = [
+  // Обновляем список элементов меню - добавляем файловый менеджер
+ final List<NavigationItem> _navigationItems = [
     NavigationItem(
       title: 'Главная',
       icon: Icons.home_outlined,
@@ -377,6 +318,12 @@ class _MainLayoutState extends State<MainLayout> {
       color: Colors.green,
     ),
     NavigationItem(
+      title: 'Файлы',
+      icon: Icons.folder_outlined,
+      activeIcon: Icons.folder,
+      color: Colors.teal,
+    ),
+    NavigationItem(
       title: 'Настройки',
       icon: Icons.settings_outlined,
       activeIcon: Icons.settings,
@@ -385,29 +332,36 @@ class _MainLayoutState extends State<MainLayout> {
   ];
 
   @override
-Widget build(BuildContext context) {
-  // Получаем текущую тему
-  final appState = AppStateProvider.getState(context);
-  final currentTheme = appState?.theme ?? AppThemeType.dark;
-  final palette = AppThemeManager.getPalette(currentTheme);
-  
-  return Scaffold(
-    backgroundColor: palette.backgroundColor,
-    drawer: _buildNavigationDrawer(),
-    body: Row(
-      children: [
-        if (MediaQuery.of(context).size.width > 768) _buildDesktopSidebar(),
-        Expanded(
-          child: _pages[_currentPageIndex],
-        ),
-      ],
-    ),
-  );
-}
+  Widget build(BuildContext context) {
+    // Получаем текущую тему
+    final appState = AppStateProvider.getState(context);
+    final currentTheme = appState?.theme ?? AppThemeType.dark;
+    final palette = AppThemeManager.getPalette(currentTheme);
+    
+    return Scaffold(
+      backgroundColor: palette.backgroundColor,
+      drawer: _buildNavigationDrawer(),
+      body: Row(
+        children: [
+          // Боковое меню для десктопов
+          if (MediaQuery.of(context).size.width > 768) _buildDesktopSidebar(),
+          // Основной контент
+          Expanded(
+            child: _pages[_currentPageIndex],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildNavigationDrawer() {
+    // Получаем текущую тему
+    final appState = AppStateProvider.getState(context);
+    final currentTheme = appState?.theme ?? AppThemeType.dark;
+    final palette = AppThemeManager.getPalette(currentTheme);
+    
     return Drawer(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: palette.panelBackground,
       width: 280,
       child: SafeArea(
         child: Column(
@@ -435,10 +389,10 @@ Widget build(BuildContext context) {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'BluePrint',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: palette.primaryText,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -450,7 +404,7 @@ Widget build(BuildContext context) {
             
             // Разделитель
             Divider(
-              color: Colors.grey[800],
+              color: palette.border,
               height: 1,
               thickness: 1,
               indent: 24,
@@ -504,12 +458,12 @@ Widget build(BuildContext context) {
                                 decoration: BoxDecoration(
                                   color: isActive
                                       ? item.color.withOpacity(0.2)
-                                      : Colors.grey[800],
+                                      : palette.cardBackground,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
                                   isActive ? item.activeIcon : item.icon,
-                                  color: isActive ? item.color : Colors.grey[400],
+                                  color: isActive ? item.color : palette.secondaryText,
                                   size: 20,
                                 ),
                               ),
@@ -518,7 +472,7 @@ Widget build(BuildContext context) {
                                 child: Text(
                                   item.title,
                                   style: TextStyle(
-                                    color: isActive ? Colors.white : Colors.grey[400],
+                                    color: isActive ? palette.primaryText : palette.secondaryText,
                                     fontSize: 16,
                                     fontWeight: isActive
                                         ? FontWeight.w600
@@ -589,7 +543,7 @@ Widget build(BuildContext context) {
                         },
                         icon: Icon(
                           Icons.logout,
-                          color: Colors.grey[500],
+                          color: palette.secondaryText,
                           size: 20,
                         ),
                       ),
@@ -638,9 +592,14 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildDesktopSidebar() {
+    // Получаем текущую тему
+    final appState = AppStateProvider.getState(context);
+    final currentTheme = appState?.theme ?? AppThemeType.dark;
+    final palette = AppThemeManager.getPalette(currentTheme);
+    
     return Container(
       width: 80,
-      color: const Color(0xFF1E1E1E),
+      color: palette.panelBackground,
       child: SafeArea(
         child: Column(
           children: [
@@ -715,7 +674,7 @@ Widget build(BuildContext context) {
                                   children: [
                                     Icon(
                                       isActive ? item.activeIcon : item.icon,
-                                      color: isActive ? item.color : Colors.grey[400],
+                                      color: isActive ? item.color : palette.secondaryText,
                                       size: 22,
                                     ),
                                     if (isActive) ...[
@@ -741,7 +700,7 @@ Widget build(BuildContext context) {
               ),
             ),
             
-            // Кнопка настроек (внизу)
+            // Кнопка профиля (внизу)
             Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: Tooltip(
@@ -750,7 +709,7 @@ Widget build(BuildContext context) {
                 child: IconButton(
                   onPressed: () {
                     setState(() {
-                      _currentPageIndex = 3; // Переход к настройкам
+                      _currentPageIndex = _navigationItems.length - 1; // Переход к настройкам
                     });
                   },
                   icon: const CircleAvatar(
