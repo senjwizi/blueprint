@@ -36,6 +36,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   boardview:
   percent_indicator: ^4.2.2 
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2  # Для дополнительной локализации
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

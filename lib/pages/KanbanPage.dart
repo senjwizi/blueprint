@@ -1,3 +1,4 @@
+import 'package:blueprint/models/theme_data.dart';
 import 'package:flutter/material.dart';
 import 'package:boardview/boardview.dart';
 import 'package:boardview/boardview_controller.dart';
@@ -6,6 +7,7 @@ import 'package:boardview/board_item.dart';
 import 'package:blueprint/models/board.dart';
 import 'package:blueprint/data/users.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:blueprint/providers/app_state_provider.dart';
 
 class KanbanPage extends StatefulWidget {
   const KanbanPage({super.key});
@@ -17,10 +19,15 @@ class KanbanPage extends StatefulWidget {
 class _KanbanPageState extends State<KanbanPage> {
   @override
   Widget build(BuildContext context) {
+    // Получаем текущее состояние приложения
+    final appState = AppStateProvider.getState(context);
+    final currentTheme = appState?.theme ?? AppThemeType.dark;
+    final palette = AppThemeManager.getPalette(currentTheme);
+    
     return Scaffold(
-      backgroundColor: Color(0xFF121212), // Темный фон всей страницы
+      backgroundColor: palette.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Color(0xFF1E1E1E), // Темно-серый вместо черного
+        backgroundColor: palette.panelBackground,
         elevation: 2,
         shadowColor: Colors.black.withOpacity(0.3),
         title: Row(
@@ -33,22 +40,21 @@ class _KanbanPageState extends State<KanbanPage> {
               ),
               child: Icon(Icons.view_kanban_outlined, color: Colors.lightBlue),
             ),
-            SizedBox(width: 15),
+            SizedBox(width: 20),
             Text(
               'Канбан-доска',
               style: TextStyle(
-                color: Colors.white,
+                color: palette.primaryText,
                 fontSize: 20,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                fontWeight: FontWeight.bold,
               ),
-            ),
+            )
           ],
         ),
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(1.0),
           child: Container(
-            color: Colors.grey[800]!.withOpacity(0.5),
+            color: palette.border.withOpacity(0.5),
             height: 1.0,
           ),
         ),
@@ -101,6 +107,14 @@ class _BoardViewWidgetState extends State<BoardViewWidget> {
   final Color _secondaryTextColor = Colors.grey[400]!;
   final Color _accentColor = Colors.lightBlue;
   final Color _hoverColor = Colors.grey[700]!;
+
+  AppThemeType get _currentTheme {
+    final appState = AppStateProvider.getState(context);
+    return appState?.theme ?? AppThemeType.dark;
+  }
+
+  // Цветовая схема на основе текущей темы
+  AppColorPalette get _palette => AppThemeManager.getPalette(_currentTheme);
 
   @override
   void initState() {
@@ -690,7 +704,7 @@ class _BoardViewWidgetState extends State<BoardViewWidget> {
           child: Container(
             margin: EdgeInsets.only(top: 16, right: 16, bottom: 16),
             decoration: BoxDecoration(
-              color: _backgroundColor,
+              color: _palette.panelBackground,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -699,7 +713,7 @@ class _BoardViewWidgetState extends State<BoardViewWidget> {
                   offset: Offset(0, 4),
                 ),
               ],
-              border: Border.all(color: Colors.grey[800]!, width: 1),
+              border: Border.all(color: _palette.border, width: 1),
             ),
             child: _buildStatisticsPanel(),
           ),
@@ -735,16 +749,16 @@ class _BoardViewWidgetState extends State<BoardViewWidget> {
               Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _accentColor.withOpacity(0.1),
+                  color: _palette.accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.analytics, color: _accentColor, size: 24),
+                child: Icon(Icons.analytics, color: _palette.accent, size: 24),
               ),
               SizedBox(width: 12),
               Text(
                 'Статистика проекта',
                 style: TextStyle(
-                  color: _textColor,
+                  color: _palette.primaryText,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
